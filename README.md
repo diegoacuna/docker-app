@@ -32,7 +32,7 @@ By default (as in docker-compose), the name of the main container of an app is a
 main: 'name_of_container'
 ```
 
-The file docker-app.yml should be placed on the root directory of your app.
+The file docker-app.yml should be placed on the root directory of your app. You can use docker-app without having a docker-app.yml file, docker-app is going to work with the default configuration (as explained above).
 
 ### A set of dependent apps
 
