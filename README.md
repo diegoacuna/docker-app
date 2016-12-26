@@ -26,6 +26,14 @@ python setup.py install
 
 ## Use cases
 
+By default (as in docker-compose), the name of the main container of an app is assumed to be the name of the actual working directory. You can change this behavior configuring the attribute *main* of the docker-app.yml file:
+
+```yaml
+main: 'name_of_container'
+```
+
+The file docker-app.yml should be placed on the root directory of your app.
+
 ### A set of dependent apps
 
 Suppose you have several docker-compose apps that interacts with each other:
@@ -63,6 +71,33 @@ docker-app up
 
 docker-app is going to do a 'up -d' in all dependencies (in order of appearance) and then in the actual app.
 
+You can also do:
+
+```
+docker-app stop
+```
+
+By default, this command only stops the containers from the docker-compose.yml file in the actual application. If you want to stop the actual app with all the containers in its dependencies, run:
+
+```
+docker-app stop --all
+```
+
+The same is valid for the restart command:
+
+```
+docker-app restart # or restart --all for all the dependencies
+```
+
+### Executing stuff on containers
+
+You can use the *exec* command of docker-app:
+
+```
+docker-app exec command
+docker-app exec command -c another_container # run the command in another container
+```
+
 ### Launching a bash console in a container
 
 **Without docker-app**
@@ -81,6 +116,13 @@ The last example is going to assume that the container to use has the same name 
 
 ```
 docker-app bash -c other_container_in_docker_compose
+```
+
+NOTE: if you want to launch a command using exec bash (as in the original docker-compose) you need to use the exec wrapper of docker-app (because the -c flag on bash is going to interfere with the -c flag on docker-app):
+
+```
+docker-app exec bash "-c bundle exec rails console"
+docker-app exec bash "-c bundle exec rails console" -c another_container
 ```
 
 ### Ruby/Rails integration
@@ -121,5 +163,4 @@ docker-app rails console -c another_container
 
 # TODO
 
- - Write a wrapper for the exec command
  - test!

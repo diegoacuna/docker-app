@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-  docker-app v0.1
+  docker-app v0.1.2
   author: diego.acuna@mailbox.org
 
   docker-app allows to define external docker-compose dependencies
@@ -34,7 +34,7 @@ def cd(newdir):
 
 def execute_in_containers(cmd_params, all_containers=True):
   if all_containers:
-    if is_dict and 'dependencies' in parsed:
+    if 'dependencies' in parsed:
         for service in parsed['dependencies']:
           dwd = pwd.replace(dc_name, service)
           with cd(dwd):
@@ -80,48 +80,58 @@ if __name__ == "__main__":
   # file, then we assume that this is the main container in the docker-compose file
   dc_name = pwd.split("/")[-1]
 
+  parsed = {}  # by default we have no properties
   # we look for a docker-app.yml file
   if os.path.isfile(CONF_FILE):
     with open(CONF_FILE) as f:
       content = f.read()
     try:
       parsed = yaml.load(content)
-      is_dict = isinstance(parsed, dict)
-      # if we have a main property, then that is the main container in the docker-compose file
-      main_container = parsed['main'] if is_dict and 'main' in parsed else dc_name
-      # proccess the current action
-      if args.action == 'up':
-        output, error, rcode = execute_in_containers(UP_CMD)
-        logging.info("ON SERVICE {0}:\n{1}\n{2}".format(dc_name, output, error))
-      elif args.action == 'stop':
-        output, error, rcode = execute_in_containers(STOP_CMD, all_containers=args.all)
-        logging.info("ON SERVICE {0}:\n{1}\n{2}".format(dc_name, output, error))
-      elif args.action == 'restart':
-        output, error, rcode = execute_in_containers(RESTART_CMD, all_containers=args.all)
-        logging.info("ON SERVICE {0}:\n{1}\n{2}".format(dc_name, output, error))
-      elif args.action == 'bash':
-        if args.container:
-          main_container = args.container
-        sys.exit(subprocess.call(['docker-compose', 'exec', main_container, 'bash']))
-      elif args.action in ['bundle', 'rails']:
-        # first we check for a Gemfile
-        if os.path.isfile('Gemfile'):
-          logging.debug("Found a bundler configuration!")
-          base_cmd = ['docker-compose', 'exec', main_container]
-          if args.action == 'bundle':
-            params = base_cmd + [args.action] if args.command is None else base_cmd + [args.action, args.command]
-            logging.info("EXECUTING: " + " ".join(params))
-            sys.exit(subprocess.call(params))
-          if args.action == 'rails':
-            params = base_cmd + ['bundle', 'exec', args.action] if args.command is None else base_cmd + ['bundle', 'exec', args.action, args.command]
-            logging.info("EXECUTING: " + " ".join(params))
-            sys.exit(subprocess.call(params))
-        else:
-          logging.info("No Gemfile in the actual directory.")
-      else:
-        logging.error("Command not found!")
     except yaml.scanner.ScannerError as e:
       logging.error("ERROR: {0}".format(e).format(e))
+  # if we have a main property, then that is the main container in the docker-compose file
+  main_container = parsed['main'] if 'main' in parsed else dc_name
+  # proccess the current action
+  if args.action == 'up':
+    output, error, rcode = execute_in_containers(UP_CMD)
+    logging.info("ON SERVICE {0}:\n{1}\n{2}".format(dc_name, output, error))
+  elif args.action == 'stop':
+    output, error, rcode = execute_in_containers(STOP_CMD, all_containers=args.all)
+    logging.info("ON SERVICE {0}:\n{1}\n{2}".format(dc_name, output, error))
+  elif args.action == 'restart':
+    output, error, rcode = execute_in_containers(RESTART_CMD, all_containers=args.all)
+    logging.info("ON SERVICE {0}:\n{1}\n{2}".format(dc_name, output, error))
+  elif args.action == 'bash':
+    if args.container:
+      main_container = args.container
+    sys.exit(subprocess.call(['docker-compose', 'exec', main_container, 'bash']))
+  elif args.action in ['bundle', 'rails']:
+    # first we check for a Gemfile
+    if os.path.isfile('Gemfile'):
+      logging.debug("Found a bundler configuration!")
+      if args.container:
+        main_container = args.container
+      base_cmd = ['docker-compose', 'exec', main_container]
+      if args.action == 'bundle':
+        params = base_cmd + [args.action] if args.command is None else base_cmd + [args.action, args.command]
+        logging.info("EXECUTING: " + " ".join(params))
+        sys.exit(subprocess.call(params))
+      if args.action == 'rails':
+        params = base_cmd + ['bundle', 'exec', args.action] if args.command is None else base_cmd + ['bundle', 'exec', args.action, args.command]
+        logging.info("EXECUTING: " + " ".join(params))
+        sys.exit(subprocess.call(params))
+    else:
+      logging.info("No Gemfile in the actual directory.")
+  elif args.action == 'exec':
+    # this is the general exec command, its only a wrapper to the original exec in docker-compose
+    if not args.command:
+      logging.error("ERROR: You need to specify a command to execute")
+    else:
+      if args.container:
+        main_container = args.container
+      params = ['docker-compose', 'exec', main_container, args.command]
+      logging.info("EXECUTING: " + " ".join(params))
+      sys.exit(subprocess.call(params))
   else:
-    logging.error("ERROR: file {0} not found in current dir ({1})".format(CONF_FILE, pwd))
+    logging.error("Command not found!")
 

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="docker-app",
-    version="0.1.1",
+    version="0.1.2",
     author="Diego A.",
     author_email="diego.acuna@mailbox.org",
     url="https://github.com/diegoacuna/docker-app",
